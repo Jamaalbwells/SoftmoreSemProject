@@ -1,17 +1,4 @@
 
-"""
-Notebook for streaming data from a microphone in realtime
-
-audio is captured using pyaudio
-then converted from binary data to ints using struct
-then displayed using matplotlib
-
-if you don't have pyaudio, then run
-
->>> pip install pyaudio
-
-note: with 2048 samples per chunk, I'm getting 20FPS
-"""
 
 import pyaudio
 import os

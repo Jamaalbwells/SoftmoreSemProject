@@ -10,7 +10,7 @@ import audioBasicIO
 import importlib
 import audioFeatureExtraction as afe
 import audioAnalysis as aa
-
+import mfcc.py as mfcc
 from subprocess import Popen, PIPE
 
 
@@ -47,9 +47,6 @@ class App(Tk):
 		frame = self.frames[context]
 		currentframe = frame
 		frame.tkraise()
-		
-
-
 
 class Root(Frame):
 
@@ -90,6 +87,31 @@ class Root(Frame):
 		previousbutton = Button(self, text = "Previous Song")
 		previousbutton.pack()
 
+
+		nextbutton.bind("<Button-1>",nextsong)
+		play.bind("<Button-1>",listentosong)
+		choosedir.bind("<Button-1>",runningdirectorychooser)
+		stop.bind("<Button-1>",stopsong)
+		previousbutton.bind("<Button-1>",previoussong)
+		compare.bind("<Button-1>",compare)
+
+	def UpdateCurrentSong(self):
+		currentsonglabel.configure(text = currentsong)
+
+class ACSFrame(Frame):
+
+	def __init__(self, parent, controller):
+		Frame.__init__(self, parent)
+		var1 = controller.var1
+		label = Label(self, text = 'Comparator Operations')
+		label.pack()
+
+		songlabel = Label(self,textvariable=var1, width=35)
+		songlabel.pack()
+		Home = Button(self, text = "Home", command=lambda:controller.show_frame(Root))
+		Home.pack()
+
+
 		chroma = Button(self, text = "chromagraphsong")
 		chroma.pack()
 
@@ -98,21 +120,9 @@ class Root(Frame):
 
 		dirGraph = Button(self, text = "Graph all songs")
 		dirGraph.pack()
-
-		nextbutton.bind("<Button-1>",nextsong)
-		play.bind("<Button-1>",listentosong)
-		choosedir.bind("<Button-1>",runningdirectorychooser)
-		stop.bind("<Button-1>",stopsong)
-		previousbutton.bind("<Button-1>",previoussong)
-		compare.bind("<Button-1>",compare)
 		chroma.bind("<Button-1>",chromagraphsong)
 		beat.bind("<Button-1>",beatgraph)
-		dirGraph.bind("<Button-1>",featurevisualization)
-
-	def UpdateCurrentSong(self):
-		currentsonglabel.configure(text = currentsong)
-
-		
+		dirGraph.bind("<Button-1>",featurevisualization)		
 
 def resetup():
 	global songindex 
@@ -120,27 +130,19 @@ def resetup():
 	listbox.delete(0,'end')
 	for songs in songlist:
 		listbox.insert(-1,songs)
-	
 
-def runningdirectorychooser(event):
-	songdirectory = tkFileDialog.askdirectory()
-	#os.chdir(songdirectory)
-
-	for song in os.listdir(songdirectory):
-		if song.endswith(".mp3"):
-			truedir = os.path.realpath(song)
-			audio = ID3(truedir)
-			#songnames.append(audio['TIT2'].text[0])
-			songlist.append(song)
-			print(song)
-	updatecurrentsong()
-	resetup()
+def updatecurrentsong():
+	global songindex
+	global songname
+	global currentsong
+	currentsong = songlist[songindex]
+	print("currentsong:" + currentsong)
 
 def directorychooser():
 	global workingdir
 	songdirectory = tkFileDialog.askdirectory()
 	workingdir = songdirectory
-	audioBasicIO.convertDirMP3ToWav(songdirectory, 44100, 1, useMp3TagsAsName=False)
+	audioBasicIO.convertDirMP3ToWav(songdirectory, 44100, 2, useMp3TagsAsName=False)
 	#text = subprocess.check_output(['python','./pyAudioAnalysis/pyAudioAnalysis/audioAnalysis.py', 'dirMp3toWav', '-i', './Musiclist/', '-r 44100', '-c', '1'])
 	#python ./pyAudioAnalysis/pyAudioAnalysis/audioAnalysis.py dirMp3toWav -i ./Musiclist/ -r 44100 -c 1
 	"""with Popen(['python','./pyAudioAnalysis/pyAudioAnalysis/audioAnalysis.py', 'dirMp3toWav', '-i', './Musiclist/', '-r 44100', '-c', '1'], stdin=PIPE, stdout=PIPE, 
@@ -162,20 +164,21 @@ def directorychooser():
 			#songnames.append(audio['TIT2'].text[0])
 			songlist.append(song)
 			print(song)
+	updatecurrentsong()	
+
+def runningdirectorychooser(event):
+	songdirectory = tkFileDialog.askdirectory()
+	#os.chdir(songdirectory)
+
+	for song in os.listdir(songdirectory):
+		if song.endswith(".mp3"):
+			truedir = os.path.realpath(song)
+			audio = ID3(truedir)
+			#songnames.append(audio['TIT2'].text[0])
+			songlist.append(song)
+			print(song)
 	updatecurrentsong()
-	
-
-def updatecurrentsong():
-	global songindex
-	global songname
-	global currentsong
-	currentsong = songlist[songindex]
-	print("currentsong:" + currentsong)
-
-#def songchromagram():
-	
-
-
+	resetup()	
 
 def listentosong(event):
 	global songindex
@@ -199,32 +202,17 @@ def chromagraphsong(event):
 
 def beatgraph(event):
 	selectedsong = tkFileDialog.askopenfilename()
-	subprocess.check_output(['python','.audioAnalysis.py', 'beatExtraction', '-i', 'selectedsong', '--plot'])
-
+	aa.beatExtractionWrapper(selectedsong, True)
+	
 def featurevisualization(event):
-	subprocess.check_output(['python','.audioAnalysis.py', 'featureVisualization', '-i', workingdir])
+	aa.featureVisualizationDirWrapper(workingdir)
 
 def stopsong(event):
 	pygame.mixer.music.stop()
 
-class ACSFrame(Frame):
-
-	def __init__(self, parent, controller):
-		Frame.__init__(self, parent)
-		label = Label(self, text = 'Comparator Operations')
-		label.pack()
-
-		songlabel = Label(self,textvariable=controller.var1, width=35)
-		songlabel.pack()
-
-		label = Label(self, text = 'songs orderd from similar to not similar')
-		label.pack()
-		listbox = Listbox(self)
-		listbox.pack()
 
 
 directorychooser()
-
 app = App()
 app.mainloop() 
 
